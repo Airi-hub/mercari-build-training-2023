@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json" 
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -28,13 +30,46 @@ func root(c echo.Context) error {
 func addItem(c echo.Context) error {
 	// Get form data
 	name := c.FormValue("name")
-	c.Logger().Infof("Receive item: %s", name)
+	category := c.FormValue("category")  // added line
+	c.Logger().Infof("Receive item: %s, category: %s", name, category)  // modified line
 
-	message := fmt.Sprintf("item received: %s", name)
+	item := Item{Name: name, Category: category}
+	items.Items = append(items.Items, item)
+
+	// Open the file in append mode, or create it if it doesn't exist
+	f, err := os.OpenFile("items.json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	// Make sure to close the file
+	defer f.Close()
+
+	// Marshal the items to indented JSON
+	data, err := json.MarshalIndent(items, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	// Write to the file
+	_, err = f.Write(data)
+	if err != nil {
+		return err
+	}
+
+	// Write a newline (optional, but makes the file easier to read)
+	_, err = f.WriteString("\n")
+	if err != nil {
+		return err
+	}
+
+	message := fmt.Sprintf("item received: %s, category: %s", name, category)  // modified line
 	res := Response{Message: message}
 
 	return c.JSON(http.StatusOK, res)
 }
+
+
 
 func getImg(c echo.Context) error {
 	// Create image path
@@ -50,6 +85,17 @@ func getImg(c echo.Context) error {
 	}
 	return c.File(imgPath)
 }
+
+//Define a new structure to store product information
+type Item struct {
+	Name     string `json:"name"`
+	Category string `json:"category"`
+}
+
+type Items struct {
+	Items []Item `json:"items"`
+}
+
 
 func main() {
 	e := echo.New()
@@ -68,8 +114,11 @@ func main() {
 		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
 	}))
 
+	
+
 	// Routes
 	e.GET("/", root)
+	e.GET("/items", addItem)
 	e.POST("/items", addItem)
 	e.GET("/image/:imageFilename", getImg)
 
