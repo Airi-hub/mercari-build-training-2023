@@ -1,9 +1,10 @@
 package main
+var items Items
 
 import (
 	"encoding/json" 
 	"fmt"
-	"io"
+    "io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -27,43 +28,75 @@ func root(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
+
+//ファイルから既存のアイテムの読み込み
+func init() {
+    f, err := os.Open("items.json")
+    if err == nil {
+        defer f.Close()
+        err = json.NewDecoder(f).Decode(&items)
+        if err != nil {
+            log.Error(err)
+        }
+    } else if !os.IsNotExist(err) {
+        log.Error(err)
+    }
+}
+
+
+
+//リスト取るためのコード
+func getItems(c echo.Context) error {
+    return c.JSON(http.StatusOK, items)
+}
+
+
 func addItem(c echo.Context) error {
-	// Get form data
+	// データの取得
 	name := c.FormValue("name")
-	category := c.FormValue("category")  // added line
-	c.Logger().Infof("Receive item: %s, category: %s", name, category)  // modified line
+	category := c.FormValue("category")  
+	c.Logger().Infof("Receive item: %s, category: %s", name, category)  
+    
+	//c.FormValue("name")とc.FormValue("category")が空文字列でないことを確認
+	if name == "" || category == "" {
+		return c.JSON(http.StatusBadRequest, &Response{Message: "name and category are required"})
+	}
 
 	item := Item{Name: name, Category: category}
 	items.Items = append(items.Items, item)
 
-	// Open the file in append mode, or create it if it doesn't exist
-	f, err := os.OpenFile("items.json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+    //ファイルを追記モードで開くか、存在しない場合は作成する
+	f, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		return err
+	  log.Errorf("Failed to open file: %v", err)
+	  return err
 	}
 
-	// Make sure to close the file
+	// ファイルを閉じる
 	defer f.Close()
 
-	// Marshal the items to indented JSON
+	// itemsをインデント付きのJSONに変換
 	data, err := json.MarshalIndent(items, "", "    ")
-	if err != nil {
-		return err
+	 if err != nil {
+	   log.Errorf("Failed to marshal JSON: %v", err)
+	   return err
 	}
 
-	// Write to the file
+	// ファイルを書く
 	_, err = f.Write(data)
 	if err != nil {
-		return err
+	  log.Errorf("Failed to write to file: %v", err)
+	  return err
 	}
 
-	// Write a newline (optional, but makes the file easier to read)
+	// 改行を書く
 	_, err = f.WriteString("\n")
 	if err != nil {
-		return err
+	  log.Errorf("Failed to write newline: %v", err)
+	  return err
 	}
 
-	message := fmt.Sprintf("item received: %s, category: %s", name, category)  // modified line
+	message := fmt.Sprintf("item received: %s, category: %s", name, category)
 	res := Response{Message: message}
 
 	return c.JSON(http.StatusOK, res)
@@ -86,7 +119,7 @@ func getImg(c echo.Context) error {
 	return c.File(imgPath)
 }
 
-//Define a new structure to store product information
+
 type Item struct {
 	Name     string `json:"name"`
 	Category string `json:"category"`
@@ -100,7 +133,6 @@ type Items struct {
 func main() {
 	e := echo.New()
 
-	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Logger.SetLevel(log.INFO)
@@ -118,7 +150,7 @@ func main() {
 
 	// Routes
 	e.GET("/", root)
-	e.GET("/items", addItem)
+	e.GET("/items", getItems)
 	e.POST("/items", addItem)
 	e.GET("/image/:imageFilename", getImg)
 
