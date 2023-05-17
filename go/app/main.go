@@ -1,15 +1,13 @@
 package main
-var items Items
+
 
 import (
 	"encoding/json" 
 	"fmt"
-    "io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"strings"
-
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
@@ -22,6 +20,17 @@ const (
 type Response struct {
 	Message string `json:"message"`
 }
+
+type Item struct {
+	Name     string `json:"name"`
+	Category string `json:"category"`
+}
+
+type Items struct {
+	Items []Item `json:"items"`
+}
+
+var items Items
 
 func root(c echo.Context) error {
 	res := Response{Message: "Hello, world!"}
@@ -120,14 +129,6 @@ func getImg(c echo.Context) error {
 }
 
 
-type Item struct {
-	Name     string `json:"name"`
-	Category string `json:"category"`
-}
-
-type Items struct {
-	Items []Item `json:"items"`
-}
 
 
 func main() {
