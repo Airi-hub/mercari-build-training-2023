@@ -8,6 +8,10 @@ import (
 	"os"
 	"path"
 	"strings"
+    "crypto/sha256"
+    "io"
+    "encoding/hex"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
@@ -24,6 +28,7 @@ type Response struct {
 type Item struct {
 	Name     string `json:"name"`
 	Category string `json:"category"`
+	ImageFilename string `json:"image_filename"`
 }
 
 type Items struct {
@@ -71,8 +76,39 @@ func addItem(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, &Response{Message: "name and category are required"})
 	}
 
-	item := Item{Name: name, Category: category}
-	items.Items = append(items.Items, item)
+	// ファイルアップロードの処理
+    file, err := c.FormFile("image")
+    if err != nil {
+        return err
+    }
+    src, err := file.Open()
+    if err != nil {
+        return err
+    }
+    defer src.Close()
+
+    // ファイルのSHA256ハッシュを計算
+    h := sha256.New()
+    if _, err := io.Copy(h, src); err != nil {
+        log.Fatal(err)
+    }
+    hash := hex.EncodeToString(h.Sum(nil))
+
+    // ハッシュをファイル名としてファイルを保存
+    dst, err := os.Create(fmt.Sprintf("images/%s.jpg", hash))
+    if err != nil {
+        return err
+    }
+    defer dst.Close()
+
+    src.Seek(0, 0) // ファイルの読み取り位置をリセット
+
+    if _, err = io.Copy(dst, src); err != nil {
+        return err
+    }
+
+	item := Item{Name: name, Category: category, ImageFilename: fmt.Sprintf("%s.jpg", hash)}
+    items.Items = append(items.Items, item)
 
     //ファイルを追記モードで開くか、存在しない場合は作成する
 	f, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
