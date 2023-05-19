@@ -11,6 +11,7 @@ import (
     "crypto/sha256"
     "io"
     "encoding/hex"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -26,9 +27,10 @@ type Response struct {
 }
 
 type Item struct {
-	Name     string `json:"name"`
-	Category string `json:"category"`
-	ImageFilename string `json:"image_filename"`
+    ID            int    `json:"id"`
+    Name          string `json:"name"`
+    Category      string `json:"category"`
+    ImageFilename string `json:"image_filename"`
 }
 
 type Items struct {
@@ -57,12 +59,8 @@ func init() {
     }
 }
 
-
-
-//リスト取るためのコード
-func getItems(c echo.Context) error {
-    return c.JSON(http.StatusOK, items)
-}
+//最後に使用されたIDを追跡するためのグローバル変数
+var lastID int = 0
 
 
 func addItem(c echo.Context) error {
@@ -76,6 +74,13 @@ func addItem(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, &Response{Message: "name and category are required"})
 	}
 
+	//画像が存在しない場合のファイル作成処理
+	if _, err := os.Stat("./images"); os.IsNotExist(err) {
+		os.Mkdir("./images", 0755)
+	}
+
+  //画像が存在する場合のファイル作成処理
+	
 	// ファイルアップロードの処理
     file, err := c.FormFile("image")
     if err != nil {
@@ -107,7 +112,8 @@ func addItem(c echo.Context) error {
         return err
     }
 
-	item := Item{Name: name, Category: category, ImageFilename: fmt.Sprintf("%s.jpg", hash)}
+	lastID++
+	item := Item{ID: lastID, Name: name, Category: category, ImageFilename: fmt.Sprintf("%s.jpg", hash)}
     items.Items = append(items.Items, item)
 
     //ファイルを追記モードで開くか、存在しない場合は作成する
@@ -130,15 +136,15 @@ func addItem(c echo.Context) error {
 	// ファイルを書く
 	_, err = f.Write(data)
 	if err != nil {
-	  log.Errorf("Failed to write to file: %v", err)
-	  return err
+	log.Errorf("Failed to write to file: %v", err)
+	return err
 	}
 
 	// 改行を書く
 	_, err = f.WriteString("\n")
 	if err != nil {
-	  log.Errorf("Failed to write newline: %v", err)
-	  return err
+	log.Errorf("Failed to write newline: %v", err)
+	return err
 	}
 
 	message := fmt.Sprintf("item received: %s, category: %s", name, category)
@@ -148,6 +154,25 @@ func addItem(c echo.Context) error {
 }
 
 
+//特定の商品の詳細情報を取得するための新しいエンドポイントを作成
+func getItem(c echo.Context) error {
+    // item_idをパスパラメータから取得
+    id, err := strconv.Atoi(c.Param("item_id"))
+    if err != nil {
+        return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID format")
+    }
+
+    // item_idに対応する商品を検索
+    for _, item := range items.Items {
+        if item.ID == id {
+            // 商品が見つかったらJSONとして返す
+            return c.JSON(http.StatusOK, item)
+        }
+    }
+
+    // 商品が見つからなかった場合は404エラーを返す
+    return echo.NewHTTPError(http.StatusNotFound, "Item not found")
+}
 
 func getImg(c echo.Context) error {
 	// Create image path
@@ -164,7 +189,32 @@ func getImg(c echo.Context) error {
 	return c.File(imgPath)
 }
 
+//位置変更
+//リスト取るためのコード
+func getItems(c echo.Context) error {
+    return c.JSON(http.StatusOK, items)
+}
 
+
+//特定のアイテムの詳細を返すエンドポイント実装
+func getItem(c echo.Context) error {
+    // item_idをパスパラメータから取得
+    id, err := strconv.Atoi(c.Param("item_id"))
+    if err != nil {
+        return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID format")
+    }
+
+    // item_idに対応する商品を検索
+    for _, item := range items.Items {
+        if item.ID == id {
+            // 商品が見つかったらJSONとして返す
+            return c.JSON(http.StatusOK, item)
+        }
+    }
+
+    // 商品が見つからなかった場合は404エラーを返す
+    return echo.NewHTTPError(http.StatusNotFound, "Item not found")
+}
 
 
 func main() {
@@ -188,8 +238,11 @@ func main() {
 	// Routes
 	e.GET("/", root)
 	e.GET("/items", getItems)
-	e.POST("/items", addItem)
+	e.GET("/items/:item_id", getItem) //エンドポイントルート追加
 	e.GET("/image/:imageFilename", getImg)
+	e.POST("/items", addItem)  
+
+
 
 
 	// Start server
