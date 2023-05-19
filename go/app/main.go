@@ -175,45 +175,46 @@ func getItem(c echo.Context) error {
 }
 
 func getImg(c echo.Context) error {
-	// Create image path
+	c.Logger().Debugf("Current log level: %v", c.Echo().Logger.Level())
+
+	//イメージパスの作成
 	imgPath := path.Join(ImgDir, c.Param("imageFilename"))
 
 	if !strings.HasSuffix(imgPath, ".jpg") {
 		res := Response{Message: "Image path does not end with .jpg"}
 		return c.JSON(http.StatusBadRequest, res)
 	}
-	if _, err := os.Stat(imgPath); err != nil {
+
+	// ファイルが存在するかどうかを確認する
+	_, err := os.Stat(imgPath)
+	if os.IsNotExist(err) {
 		c.Logger().Debugf("Image not found: %s", imgPath)
 		imgPath = path.Join(ImgDir, "default.jpg")
 	}
+
+	//  default.jpgも表示
+	if imgPath == path.Join(ImgDir, "default.jpg") {
+		c.Logger().Debugf("Default image displayed: %s", imgPath)
+	}
+
 	return c.File(imgPath)
 }
 
+
+
+
 //位置変更
+
 //リスト取るためのコード
 func getItems(c echo.Context) error {
     return c.JSON(http.StatusOK, items)
 }
 
 
-//特定のアイテムの詳細を返すエンドポイント実装
-func getItem(c echo.Context) error {
-    // item_idをパスパラメータから取得
-    id, err := strconv.Atoi(c.Param("item_id"))
-    if err != nil {
-        return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID format")
-    }
-
-    // item_idに対応する商品を検索
-    for _, item := range items.Items {
-        if item.ID == id {
-            // 商品が見つかったらJSONとして返す
-            return c.JSON(http.StatusOK, item)
-        }
-    }
-
-    // 商品が見つからなかった場合は404エラーを返す
-    return echo.NewHTTPError(http.StatusNotFound, "Item not found")
+func handler(c echo.Context) error {
+    c.Logger().Info("This is an info message")
+    c.Logger().Error("This is an error message")
+    return nil
 }
 
 
@@ -222,7 +223,7 @@ func main() {
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Logger.SetLevel(log.INFO)
+	e.Logger.SetLevel(log.DEBUG)
 
 	front_url := os.Getenv("FRONT_URL")
 	if front_url == "" {
