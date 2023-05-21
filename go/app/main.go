@@ -338,10 +338,10 @@ func main() {
     e.GET("/image/:imageFilename", getImg)
     e.POST("/items", addItem)  
 
-<<<<<<< Updated upstream
+
     // サーバー起動
     e.Logger.Fatal(e.Start(":9000"))  
-=======
+
 	// Routes
 	e.GET("/", root)
 	e.GET("/items", getItems)
@@ -356,7 +356,7 @@ func main() {
 
 	// Start server
 	e.Logger.Fatal(e.Start(":9000"))
->>>>>>> Stashed changes
+
 }
 
 
