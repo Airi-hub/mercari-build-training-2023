@@ -8,15 +8,18 @@ import (
 	"os"
 	"path"
 	"strings"
-    "crypto/sha256"
-    "io"
-    "encoding/hex"
+	"crypto/sha256"
+	"io"
+	"encoding/hex"
 	"strconv"
-
+	"database/sql"
+    
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 )
+
 
 const (
 	ImgDir = "images"
@@ -45,8 +48,18 @@ func root(c echo.Context) error {
 }
 
 
+// dbをグローバル変数として宣言
+var db *sql.DB 
+
 //ファイルから既存のアイテムの読み込み
 func init() {
+    var err error
+    db, err = sql.Open("sqlite3", "../db/mercari.sqlite3")
+    if err != nil {
+        log.Fatalf("Failed to open the db: %v", err)
+    }
+
+    // Load items from a file
     f, err := os.Open("items.json")
     if err == nil {
         defer f.Close()
@@ -58,6 +71,8 @@ func init() {
         log.Error(err)
     }
 }
+
+
 
 //最後に使用されたIDを追跡するためのグローバル変数
 var lastID int = 0
@@ -116,6 +131,14 @@ func addItem(c echo.Context) error {
 	item := Item{ID: lastID, Name: name, Category: category, ImageFilename: fmt.Sprintf("%s.jpg", hash)}
     items.Items = append(items.Items, item)
 
+	// データベースに新しいアイテムを保存
+	_, err = db.Exec("INSERT INTO items (name, category, image_name) VALUES (?, ?, ?)", name, category, fmt.Sprintf("%s.jpg", hash))
+	if err != nil {
+		log.Errorf("Failed to insert item into database: %v", err)
+		return err
+	}
+
+
     //ファイルを追記モードで開くか、存在しない場合は作成する
 	f, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
@@ -170,6 +193,18 @@ func getItem(c echo.Context) error {
         }
     }
 
+	// データベースからアイテムを取得
+    var item Item
+    err = db.QueryRow("SELECT id, name, category, image_name FROM items WHERE id = ?", id).Scan(&item.ID, &item.Name, &item.Category, &item.ImageFilename)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return echo.NewHTTPError(http.StatusNotFound, "Item not found")
+        } else {
+            log.Errorf("Failed to get item from database: %v", err)
+            return err
+        }
+    }
+
     // 商品が見つからなかった場合は404エラーを返す
     return echo.NewHTTPError(http.StatusNotFound, "Item not found")
 }
@@ -207,6 +242,29 @@ func getImg(c echo.Context) error {
 
 //リスト取るためのコード
 func getItems(c echo.Context) error {
+	rows, err := db.Query("SELECT id, name, category, image_name FROM items")
+    if err != nil {
+        log.Errorf("Failed to get items from database: %v", err)
+        return err
+    }
+    defer rows.Close()
+
+    var items Items
+    for rows.Next() {
+        var item Item
+        err := rows.Scan(&item.ID, &item.Name, &item.Category, &item.ImageFilename)
+        if err != nil {
+            log.Errorf("Failed to get item from row: %v", err)
+            return err
+        }
+        items.Items = append(items.Items, item)
+    }
+
+    if err := rows.Err(); err != nil {
+        log.Errorf("Failed to get items from database: %v", err)
+        return err
+    }
+
     return c.JSON(http.StatusOK, items)
 }
 
@@ -219,33 +277,31 @@ func handler(c echo.Context) error {
 
 
 func main() {
-	e := echo.New()
+    e := echo.New()
 
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Logger.SetLevel(log.DEBUG)
+    e.Use(middleware.Logger())
+    e.Use(middleware.Recover())
+    e.Logger.SetLevel(log.DEBUG)
 
-	front_url := os.Getenv("FRONT_URL")
-	if front_url == "" {
-		front_url = "http://localhost:3000"
-	}
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{front_url},
-		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
-	}))
+    front_url := os.Getenv("FRONT_URL")
+    if front_url == "" {
+        front_url = "http://localhost:3000"
+    }
+    e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+        AllowOrigins: []string{front_url},
+        AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
+    }))  
 
-	
+    // Routes
+    e.GET("/", root)
+    e.GET("/items", getItems)
+    e.GET("/items/:item_id", getItem) //エンドポイントルート追加
+    e.GET("/image/:imageFilename", getImg)
+    e.POST("/items", addItem)  
 
-	// Routes
-	e.GET("/", root)
-	e.GET("/items", getItems)
-	e.GET("/items/:item_id", getItem) //エンドポイントルート追加
-	e.GET("/image/:imageFilename", getImg)
-	e.POST("/items", addItem)  
-
-
-
-
-	// Start server
-	e.Logger.Fatal(e.Start(":9000"))
+    // サーバー起動
+    e.Logger.Fatal(e.Start(":9000"))  
 }
+
+
+
