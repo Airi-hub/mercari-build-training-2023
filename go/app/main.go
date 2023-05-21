@@ -178,7 +178,7 @@ func addItem(c echo.Context) error {
 
 
 //特定の商品の詳細情報を取得するための新しいエンドポイントを作成
-<<<<<<< Updated upstream
+
 func getItem(c echo.Context) error {
     // item_idをパスパラメータから取得
     id, err := strconv.Atoi(c.Param("item_id"))
@@ -209,8 +209,7 @@ func getItem(c echo.Context) error {
     // 商品が見つからなかった場合は404エラーを返す
     return echo.NewHTTPError(http.StatusNotFound, "Item not found")
 }
-=======
->>>>>>> Stashed changes
+
 
 func getImg(c echo.Context) error {
 	c.Logger().Debugf("Current log level: %v", c.Echo().Logger.Level())
