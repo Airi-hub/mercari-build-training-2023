@@ -178,6 +178,7 @@ func addItem(c echo.Context) error {
 
 
 //特定の商品の詳細情報を取得するための新しいエンドポイントを作成
+<<<<<<< Updated upstream
 func getItem(c echo.Context) error {
     // item_idをパスパラメータから取得
     id, err := strconv.Atoi(c.Param("item_id"))
@@ -208,6 +209,8 @@ func getItem(c echo.Context) error {
     // 商品が見つからなかった場合は404エラーを返す
     return echo.NewHTTPError(http.StatusNotFound, "Item not found")
 }
+=======
+>>>>>>> Stashed changes
 
 func getImg(c echo.Context) error {
 	c.Logger().Debugf("Current log level: %v", c.Echo().Logger.Level())
@@ -238,7 +241,26 @@ func getImg(c echo.Context) error {
 
 
 
-//位置変更
+//特定の商品の詳細情報を取得するための新しいエンドポイントを作成
+func getItem(c echo.Context) error {
+    // URLパラメータからアイテムIDを取得
+    idParam := c.Param("item_id")
+    id, err := strconv.Atoi(idParam)
+    if err != nil {
+        return c.JSON(http.StatusBadRequest, &Response{Message: "Invalid item ID"})
+    }
+
+    // アイテムリストをスキャンして、該当のアイテムを探す
+    for _, item := range items.Items {
+        if item.ID == id {
+            return c.JSON(http.StatusOK, item)
+        }
+    }
+
+    // アイテムが見つからない場合
+    return c.JSON(http.StatusNotFound, &Response{Message: "Item not found"})
+}
+
 
 //リスト取るためのコード
 func getItems(c echo.Context) error {
@@ -275,6 +297,23 @@ func handler(c echo.Context) error {
     return nil
 }
 
+//商品情報を検索するエンドポイント実装
+func searchItems(c echo.Context) error {
+    keyword := c.QueryParam("keyword")
+
+    resultItems := make([]Item, 0)
+
+    for _, item := range items.Items {
+        if strings.Contains(item.Name, keyword) {
+            resultItems = append(resultItems, item)
+        }
+    }
+
+    return c.JSON(http.StatusOK, map[string][]Item{"items": resultItems})
+}
+
+
+
 
 func main() {
     e := echo.New()
@@ -299,8 +338,25 @@ func main() {
     e.GET("/image/:imageFilename", getImg)
     e.POST("/items", addItem)  
 
+<<<<<<< Updated upstream
     // サーバー起動
     e.Logger.Fatal(e.Start(":9000"))  
+=======
+	// Routes
+	e.GET("/", root)
+	e.GET("/items", getItems)
+	e.GET("/items/:item_id", getItem) //エンドポイントルート追加
+	e.GET("/image/:imageFilename", getImg)
+	e.GET("/search", searchItems) //データベース検索
+	e.POST("/items", addItem)  
+	
+
+
+
+
+	// Start server
+	e.Logger.Fatal(e.Start(":9000"))
+>>>>>>> Stashed changes
 }
 
 
