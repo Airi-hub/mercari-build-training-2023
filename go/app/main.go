@@ -89,6 +89,19 @@ func addItem(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, &Response{Message: "name and category are required"})
 	}
 
+	// カテゴリ名からcategory_idを取得する
+    var categoryID int64
+    err := db.QueryRow("SELECT id FROM category WHERE name = ?", category).Scan(&categoryID)
+		if err != nil {
+			// カテゴリーが存在しない場合、新たに作成する
+			res, err := db.Exec("INSERT INTO category (name) VALUES (?)", category)
+			if err != nil {
+				log.Errorf("Failed to insert category into database: %v", err)
+				return err
+			}
+			categoryID, _ = res.LastInsertId()
+		}
+
 	//画像が存在しない場合のファイル作成処理
 	if _, err := os.Stat("./images"); os.IsNotExist(err) {
 		os.Mkdir("./images", 0755)
@@ -132,7 +145,7 @@ func addItem(c echo.Context) error {
     items.Items = append(items.Items, item)
 
 	// データベースに新しいアイテムを保存
-	_, err = db.Exec("INSERT INTO items (name, category, image_name) VALUES (?, ?, ?)", name, category, fmt.Sprintf("%s.jpg", hash))
+	_, err = db.Exec("INSERT INTO items (name, category_id, image_name) VALUES (?, ?, ?)", name, categoryID, fmt.Sprintf("%s.jpg", hash))
 	if err != nil {
 		log.Errorf("Failed to insert item into database: %v", err)
 		return err
@@ -177,39 +190,6 @@ func addItem(c echo.Context) error {
 }
 
 
-//特定の商品の詳細情報を取得するための新しいエンドポイントを作成
-
-func getItem(c echo.Context) error {
-    // item_idをパスパラメータから取得
-    id, err := strconv.Atoi(c.Param("item_id"))
-    if err != nil {
-        return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID format")
-    }
-
-    // item_idに対応する商品を検索
-    for _, item := range items.Items {
-        if item.ID == id {
-            // 商品が見つかったらJSONとして返す
-            return c.JSON(http.StatusOK, item)
-        }
-    }
-
-	// データベースからアイテムを取得
-    var item Item
-    err = db.QueryRow("SELECT id, name, category, image_name FROM items WHERE id = ?", id).Scan(&item.ID, &item.Name, &item.Category, &item.ImageFilename)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            return echo.NewHTTPError(http.StatusNotFound, "Item not found")
-        } else {
-            log.Errorf("Failed to get item from database: %v", err)
-            return err
-        }
-    }
-
-    // 商品が見つからなかった場合は404エラーを返す
-    return echo.NewHTTPError(http.StatusNotFound, "Item not found")
-}
-
 
 func getImg(c echo.Context) error {
 	c.Logger().Debugf("Current log level: %v", c.Echo().Logger.Level())
@@ -249,22 +229,34 @@ func getItem(c echo.Context) error {
         return c.JSON(http.StatusBadRequest, &Response{Message: "Invalid item ID"})
     }
 
-    // アイテムリストをスキャンして、該当のアイテムを探す
-    for _, item := range items.Items {
-        if item.ID == id {
-            return c.JSON(http.StatusOK, item)
+    // データベースからアイテムを取得
+    var item Item
+    err = db.QueryRow("SELECT items.id, items.name, category.name, items.image_name FROM items JOIN category ON items.category_id = category.id WHERE items.id = ?", id).Scan(&item.ID, &item.Name, &item.Category, &item.ImageFilename)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            // アイテムが見つからない場合、itemsから探す
+            for _, item := range items.Items {
+                if item.ID == id {
+                    return c.JSON(http.StatusOK, item)
+                }
+            }
+            // アイテムが見つからない場合
+            return c.JSON(http.StatusNotFound, &Response{Message: "Item not found"})
+        } else {
+            return c.JSON(http.StatusInternalServerError, &Response{Message: "Internal server error"})
         }
     }
 
-    // アイテムが見つからない場合
-    return c.JSON(http.StatusNotFound, &Response{Message: "Item not found"})
+    // 見つかったアイテムを返す
+    return c.JSON(http.StatusOK, item)
 }
+
 
 
 //リスト取るためのコード
 func getItems(c echo.Context) error {
-	rows, err := db.Query("SELECT id, name, category, image_name FROM items")
-    if err != nil {
+	rows, err := db.Query("SELECT items.id, items.name, category.name, items.image_name FROM items JOIN category ON items.category_id = category.id")
+	if err != nil {
         log.Errorf("Failed to get items from database: %v", err)
         return err
     }
