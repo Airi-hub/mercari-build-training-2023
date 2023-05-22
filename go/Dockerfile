@@ -1,9 +1,17 @@
-FROM golang:1.16-alpine
+FROM alpine
 
 RUN apk add --no-cache tesseract-ocr
+RUN apk add --no-cache go
+
 RUN addgroup -S mercari && adduser -S trainee -G mercari
-# RUN chown -R trainee:mercari /path/to/db
+
+WORKDIR /app
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+COPY . .
 
 USER trainee
 
-CMD ["go", "version"]
+CMD ["go", "run", "main.go"]
