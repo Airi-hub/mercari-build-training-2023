@@ -1,0 +1,70 @@
+{
+    "items": [
+        {
+            "id": 1,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "3a9706446ccbb5d47f18312ca0a7ed480f43c97ca27dd4e6d2ffe563b1c579ce.jpg"
+        },
+        {
+            "id": 1,
+            "name": "jacket",
+            "category": "fashion2",
+            "image_filename": "796e259132d48c30e565bacdf5e74cad3ab76fb9604527ac7a19593876bb9d6f.jpg"
+        },
+        {
+            "id": 2,
+            "name": "pants",
+            "category": "fashion3",
+            "image_filename": "e4e9adec53040fbadde2a07463042eb809fea90d614c3be378bdfd65a6041024.jpg"
+        },
+        {
+            "id": 1,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "c4d3cff1b35a1afaf2e019bf2acade5e6c87e0e9a6a2a9fbd78e162a38a991a5.jpg"
+        },
+        {
+            "id": 2,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "c4d3cff1b35a1afaf2e019bf2acade5e6c87e0e9a6a2a9fbd78e162a38a991a5.jpg"
+        },
+        {
+            "id": 3,
+            "name": "tent",
+            "category": "outdoor",
+            "image_filename": "7f19cc0fb0b1a80bbfa017efe38c94a68dd46bffb683c91cce231eaca28a6ff5.jpg"
+        },
+        {
+            "id": 4,
+            "name": "cup",
+            "category": "tableware",
+            "image_filename": "b33c0408dc0519eeeb300fd0ad662c82439921e811f91de18d46866425a70ccc.jpg"
+        },
+        {
+            "id": 5,
+            "name": "chair",
+            "category": "furniture",
+            "image_filename": "f4685c716b7880b21ddce98225e88c85927f802fa4d6ded2e20b61b835b7c4a5.jpg"
+        },
+        {
+            "id": 1,
+            "name": "chair",
+            "category": "furniture",
+            "image_filename": "f4685c716b7880b21ddce98225e88c85927f802fa4d6ded2e20b61b835b7c4a5.jpg"
+        },
+        {
+            "id": 1,
+            "name": "pants",
+            "category": "fashion3",
+            "image_filename": "e4e9adec53040fbadde2a07463042eb809fea90d614c3be378bdfd65a6041024.jpg"
+        },
+        {
+            "id": 1,
+            "name": "pants",
+            "category": "fashion3",
+            "image_filename": "e4e9adec53040fbadde2a07463042eb809fea90d614c3be378bdfd65a6041024.jpg"
+        }
+    ]
+}
