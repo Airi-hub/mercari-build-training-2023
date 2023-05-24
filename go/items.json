@@ -1,0 +1,46 @@
+{
+    "items": [
+        {
+            "id": 1,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "3a9706446ccbb5d47f18312ca0a7ed480f43c97ca27dd4e6d2ffe563b1c579ce.jpg"
+        },
+        {
+            "id": 2,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "796e259132d48c30e565bacdf5e74cad3ab76fb9604527ac7a19593876bb9d6f.jpg"
+        },
+        {
+            "id": 3,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "bc073e8024d61a295ef285e3e2b0851fcbca8ca40eae8df6b9fd548a1906094c.jpg"
+        },
+        {
+            "id": 4,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "e4e9adec53040fbadde2a07463042eb809fea90d614c3be378bdfd65a6041024.jpg"
+        },
+        {
+            "id": 5,
+            "name": "pants",
+            "category": "fashion",
+            "image_filename": "e4e9adec53040fbadde2a07463042eb809fea90d614c3be378bdfd65a6041024.jpg"
+        },
+        {
+            "id": 6,
+            "name": "hat",
+            "category": "fashion",
+            "image_filename": "bc073e8024d61a295ef285e3e2b0851fcbca8ca40eae8df6b9fd548a1906094c.jpg"
+        },
+        {
+            "id": 7,
+            "name": "skirt",
+            "category": "fashion",
+            "image_filename": "796e259132d48c30e565bacdf5e74cad3ab76fb9604527ac7a19593876bb9d6f.jpg"
+        }
+    ]
+}

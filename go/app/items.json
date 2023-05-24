@@ -1,0 +1,46 @@
+{
+    "items": [
+        {
+            "id": 0,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": ""
+        },
+        {
+            "id": 0,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "3a9706446ccbb5d47f18312ca0a7ed480f43c97ca27dd4e6d2ffe563b1c579ce.jpg"
+        },
+        {
+            "id": 0,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "3a9706446ccbb5d47f18312ca0a7ed480f43c97ca27dd4e6d2ffe563b1c579ce.jpg"
+        },
+        {
+            "id": 0,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "3a9706446ccbb5d47f18312ca0a7ed480f43c97ca27dd4e6d2ffe563b1c579ce.jpg"
+        },
+        {
+            "id": 0,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "3a9706446ccbb5d47f18312ca0a7ed480f43c97ca27dd4e6d2ffe563b1c579ce.jpg"
+        },
+        {
+            "id": 1,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "3a9706446ccbb5d47f18312ca0a7ed480f43c97ca27dd4e6d2ffe563b1c579ce.jpg"
+        },
+        {
+            "id": 2,
+            "name": "jacket",
+            "category": "fashion",
+            "image_filename": "3a9706446ccbb5d47f18312ca0a7ed480f43c97ca27dd4e6d2ffe563b1c579ce.jpg"
+        }
+    ]
+}
