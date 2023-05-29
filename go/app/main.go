@@ -327,17 +327,6 @@ func main() {
     e.GET("/items", getItems)
     e.GET("/items/:item_id", getItem) //エンドポイントルート追加
     e.GET("/image/:imageFilename", getImg)
-    e.POST("/items", addItem)  
-
-
-    // サーバー起動
-    e.Logger.Fatal(e.Start(":9000"))  
-
-	// Routes
-	e.GET("/", root)
-	e.GET("/items", getItems)
-	e.GET("/items/:item_id", getItem) //エンドポイントルート追加
-	e.GET("/image/:imageFilename", getImg)
 	e.GET("/search", searchItems) //データベース検索
 	e.POST("/items", addItem)  
 	
@@ -345,7 +334,7 @@ func main() {
 
 
 
-	// Start server
+	// サーバー起動
 	e.Logger.Fatal(e.Start(":9000"))
 
 }

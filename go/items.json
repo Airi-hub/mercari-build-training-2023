@@ -7,6 +7,7 @@
             "image_filename": "3a9706446ccbb5d47f18312ca0a7ed480f43c97ca27dd4e6d2ffe563b1c579ce.jpg"
         },
         {
+
             "id": 2,
             "name": "jacket",
             "category": "fashion",
@@ -41,6 +42,7 @@
             "name": "skirt",
             "category": "fashion",
             "image_filename": "796e259132d48c30e565bacdf5e74cad3ab76fb9604527ac7a19593876bb9d6f.jpg"
+
         }
     ]
 }
