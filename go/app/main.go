@@ -50,6 +50,8 @@ func root(c echo.Context) error {
 
 // dbをグローバル変数として宣言
 var db *sql.DB 
+// バックエンドのURLを設定
+var serverURL = "http://localhost:9000" 
 
 //ファイルから既存のアイテムの読み込み
 func init() {
@@ -76,119 +78,6 @@ func init() {
 
 //最後に使用されたIDを追跡するためのグローバル変数
 var lastID int = 0
-
-
-func addItem(c echo.Context) error {
-	// データの取得
-	name := c.FormValue("name")
-	category := c.FormValue("category")  
-	c.Logger().Infof("Receive item: %s, category: %s", name, category)  
-    
-	//c.FormValue("name")とc.FormValue("category")が空文字列でないことを確認
-	if name == "" || category == "" {
-		return c.JSON(http.StatusBadRequest, &Response{Message: "name and category are required"})
-	}
-
-	// カテゴリ名からcategory_idを取得する
-    var categoryID int64
-    err := db.QueryRow("SELECT id FROM category WHERE name = ?", category).Scan(&categoryID)
-		if err != nil {
-			// カテゴリーが存在しない場合、新たに作成する
-			res, err := db.Exec("INSERT INTO category (name) VALUES (?)", category)
-			if err != nil {
-				log.Errorf("Failed to insert category into database: %v", err)
-				return err
-			}
-			categoryID, _ = res.LastInsertId()
-		}
-
-	//画像が存在しない場合のファイル作成処理
-	if _, err := os.Stat("./images"); os.IsNotExist(err) {
-		os.Mkdir("./images", 0755)
-	}
-
-  //画像が存在する場合のファイル作成処理
-	
-	// ファイルアップロードの処理
-    file, err := c.FormFile("image")
-    if err != nil {
-        return err
-    }
-    src, err := file.Open()
-    if err != nil {
-        return err
-    }
-    defer src.Close()
-
-    // ファイルのSHA256ハッシュを計算
-    h := sha256.New()
-    if _, err := io.Copy(h, src); err != nil {
-        log.Fatal(err)
-    }
-    hash := hex.EncodeToString(h.Sum(nil))
-
-    // ハッシュをファイル名としてファイルを保存
-    dst, err := os.Create(fmt.Sprintf("images/%s.jpg", hash))
-    if err != nil {
-        return err
-    }
-    defer dst.Close()
-
-    src.Seek(0, 0) // ファイルの読み取り位置をリセット
-
-    if _, err = io.Copy(dst, src); err != nil {
-        return err
-    }
-
-	lastID++
-	item := Item{ID: lastID, Name: name, Category: category, ImageFilename: fmt.Sprintf("%s.jpg", hash)}
-    items.Items = append(items.Items, item)
-
-	// データベースに新しいアイテムを保存
-	_, err = db.Exec("INSERT INTO items (name, category_id, image_name) VALUES (?, ?, ?)", name, categoryID, fmt.Sprintf("%s.jpg", hash))
-	if err != nil {
-		log.Errorf("Failed to insert item into database: %v", err)
-		return err
-	}
-
-
-    //ファイルを追記モードで開くか、存在しない場合は作成する
-	f, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-	  log.Errorf("Failed to open file: %v", err)
-	  return err
-	}
-
-	// ファイルを閉じる
-	defer f.Close()
-
-	// itemsをインデント付きのJSONに変換
-	data, err := json.MarshalIndent(items, "", "    ")
-	 if err != nil {
-	   log.Errorf("Failed to marshal JSON: %v", err)
-	   return err
-	}
-
-	// ファイルを書く
-	_, err = f.Write(data)
-	if err != nil {
-	log.Errorf("Failed to write to file: %v", err)
-	return err
-	}
-
-	// 改行を書く
-	_, err = f.WriteString("\n")
-	if err != nil {
-	log.Errorf("Failed to write newline: %v", err)
-	return err
-	}
-
-	message := fmt.Sprintf("item received: %s, category: %s", name, category)
-	res := Response{Message: message}
-
-	return c.JSON(http.StatusOK, res)
-}
-
 
 
 func getImg(c echo.Context) error {
@@ -255,8 +144,8 @@ func getItem(c echo.Context) error {
 
 //リスト取るためのコード
 func getItems(c echo.Context) error {
-	rows, err := db.Query("SELECT items.id, items.name, category.name, items.image_name FROM items JOIN category ON items.category_id = category.id")
-	if err != nil {
+    rows, err := db.Query("SELECT items.id, items.name, category.name, items.image_name FROM items JOIN category ON items.category_id = category.id")
+    if err != nil {
         log.Errorf("Failed to get items from database: %v", err)
         return err
     }
@@ -282,6 +171,7 @@ func getItems(c echo.Context) error {
 }
 
 
+
 func handler(c echo.Context) error {
     c.Logger().Info("This is an info message")
     c.Logger().Error("This is an error message")
@@ -292,17 +182,113 @@ func handler(c echo.Context) error {
 func searchItems(c echo.Context) error {
     keyword := c.QueryParam("keyword")
 
-    resultItems := make([]Item, 0)
+    rows, err := db.Query("SELECT items.id, items.name, category.name, items.image_name FROM items JOIN category ON items.category_id = category.id WHERE items.name LIKE '%' || ? || '%'", keyword)
+    if err != nil {
+        log.Errorf("Failed to search items from database: %v", err)
+        return err
+    }
+    defer rows.Close()
 
-    for _, item := range items.Items {
-        if strings.Contains(item.Name, keyword) {
-            resultItems = append(resultItems, item)
+    var resultItems Items
+    for rows.Next() {
+        var item Item
+        err := rows.Scan(&item.ID, &item.Name, &item.Category, &item.ImageFilename)
+        if err != nil {
+            log.Errorf("Failed to get item from row: %v", err)
+            return err
         }
+        resultItems.Items = append(resultItems.Items, item)
     }
 
-    return c.JSON(http.StatusOK, map[string][]Item{"items": resultItems})
+    if err := rows.Err(); err != nil {
+        log.Errorf("Failed to search items from database: %v", err)
+        return err
+    }
+
+    return c.JSON(http.StatusOK, resultItems)
 }
 
+
+//addItemの位置移動
+
+func addItem(c echo.Context) error {
+	// データの取得
+	name := c.FormValue("name")
+	category := c.FormValue("category")  
+	c.Logger().Infof("Receive item: %s, category: %s", name, category)  
+    
+	//c.FormValue("name")とc.FormValue("category")が空文字列でないことを確認
+	if name == "" || category == "" {
+		return c.JSON(http.StatusBadRequest, &Response{Message: "name and category are required"})
+	}
+
+	// カテゴリ名からcategory_idを取得する
+    var categoryID int64
+    err := db.QueryRow("SELECT id FROM category WHERE name = ?", category).Scan(&categoryID)
+	if err != nil {
+		// カテゴリーが存在しない場合、新たに作成する
+		res, err := db.Exec("INSERT INTO category (name) VALUES (?)", category)
+		if err != nil {
+			log.Errorf("Failed to insert category into database: %v", err)
+			return err
+		}
+		categoryID, _ = res.LastInsertId()
+	}
+
+	//画像が存在しない場合のファイル作成処理
+	if _, err := os.Stat("./images"); os.IsNotExist(err) {
+		os.Mkdir("./images", 0755)
+	}
+
+	//画像が存在する場合のファイル作成処理
+
+	// ファイルアップロードの処理
+	file, err := c.FormFile("image")
+	if err != nil {
+		return err
+	}
+	src, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	// ファイルのSHA256ハッシュを計算
+	h := sha256.New()
+	if _, err := io.Copy(h, src); err != nil {
+		log.Fatal(err)
+	}
+	hash := hex.EncodeToString(h.Sum(nil))
+
+	// ハッシュをファイル名としてファイルを保存
+	dst, err := os.Create(fmt.Sprintf("./images/%s.jpg", hash))
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+
+	src.Seek(0, 0) // ファイルの読み取り位置をリセット
+
+	if _, err = io.Copy(dst, src); err != nil {
+		return err
+	}
+
+	lastID++
+	item := Item{ID: lastID, Name: name, Category: category, ImageFilename: fmt.Sprintf("%s.jpg", hash)}
+	items.Items = append(items.Items, item)
+
+	// データベースに新しいアイテムを保存
+	_, err = db.Exec("INSERT INTO items (name, category_id, image_name) VALUES (?, ?, ?)", name, categoryID, fmt.Sprintf("%s.jpg", hash))
+	if err != nil {
+		log.Errorf("Failed to insert item into database: %v", err)
+		return err
+	}
+
+	message := fmt.Sprintf("item received: %s, category: %s", name, category)
+	res := Response{Message: message}
+
+	return c.JSON(http.StatusOK, res)
+}
 
 
 
@@ -311,7 +297,7 @@ func main() {
 
     e.Use(middleware.Logger())
     e.Use(middleware.Recover())
-    e.Logger.SetLevel(log.DEBUG)
+    e.Logger.SetLevel(log.INFO)
 
     front_url := os.Getenv("FRONT_URL")
     if front_url == "" {
@@ -325,8 +311,8 @@ func main() {
     // Routes
     e.GET("/", root)
     e.GET("/items", getItems)
-    e.GET("/items/:item_id", getItem) //エンドポイントルート追加
     e.GET("/image/:imageFilename", getImg)
+    e.GET("/items/:item_id", getItem)
 	e.GET("/search", searchItems) //データベース検索
 	e.POST("/items", addItem)  
 	
