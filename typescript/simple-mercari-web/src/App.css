@@ -1,49 +1,74 @@
-.App {
-  text-align: center;
-}
-
 .Title {
-  background-color: #222427;
-  min-height: 8vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: left;
-  font-size: calc(10px + 1vmin);
-  color: white;
+  text-align: center;
+  font-size: 2em;
+  margin: 20px 0;
 }
 
 .Listing {
-  background-color: #222427;
-  min-height: 8vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: left;
-  font-size: calc(10px + 1vmin);
+  justify-content: center;
+  padding: 20px;
+}
+
+.Listing form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 400px;
+}
+
+.Listing input,
+.Listing button {
+  margin-bottom: 15px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  outline: none;
+}
+
+.Listing input:focus,
+.Listing button:focus {
+  border-color: #4caf50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.2);
+}
+
+.Listing button {
+  background-color: #4caf50;
   color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.Listing button:hover {
+  background-color: #45a049;
+}
+
+
+
+.ItemListing {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(200px, 1fr));
+  grid-gap: 20px;
+  justify-items: center;
 }
 
 .ItemList {
-  background-color: #222427;
-  min-height: 8vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: left;
-  font-size: calc(10px + 1vmin);
-  color: white;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  text-align: center;
+  box-sizing: border-box; 
 }
 
-.App-link {
-  color: #61dafb;
+.ItemList img {
+  width: 100%;
+  height: auto;
+  margin-bottom: 10px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.ItemList p {
+  margin: 0;
 }
